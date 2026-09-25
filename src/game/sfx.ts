@@ -44,4 +44,31 @@ export const sfx = {
     setTimeout(() => tone(784, 0.2, 0.04, 1046), 220);
   },
   hint: (on: boolean) => on && tone(392, 0.16, 0.03, 349),
+  applause: (on: boolean) => {
+    if (!on) return;
+    try {
+      const c = ac();
+      if (!c) return;
+      void c.resume();
+      for (let i = 0; i < 14; i++) {
+        const len = Math.floor(c.sampleRate * 0.07);
+        const buf = c.createBuffer(1, len, c.sampleRate);
+        const data = buf.getChannelData(0);
+        for (let n = 0; n < len; n++) data[n] = (Math.random() * 2 - 1) * (1 - n / len) ** 2;
+        const src = c.createBufferSource();
+        src.buffer = buf;
+        const filter = c.createBiquadFilter();
+        filter.type = "bandpass";
+        filter.frequency.value = 900 + (i % 4) * 380;
+        const g = c.createGain();
+        g.gain.value = 0.16;
+        src.connect(filter);
+        filter.connect(g);
+        g.connect(c.destination);
+        src.start(c.currentTime + i * 0.12);
+      }
+    } catch {
+      /* un aplauso fallido no debe interrumpir el cierre */
+    }
+  },
 };

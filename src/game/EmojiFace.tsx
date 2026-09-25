@@ -32,18 +32,44 @@ export function EmojiFace({ mood }: { mood: Mood }) {
       </>
     ) : k === "scared" ? (
       <>
-        <path d="M18 22 H28" stroke="#1e1830" strokeWidth="2" />
-        <path d="M36 22 H46" stroke="#1e1830" strokeWidth="2" />
+        <path d="M16 20 L26 16" stroke="#1e1830" strokeWidth="2" fill="none" />
+        <path d="M48 20 L38 16" stroke="#1e1830" strokeWidth="2" fill="none" />
       </>
     ) : null;
-  const mouth = k === "happy" ? MOUTH.happy : k === "sad" ? MOUTH.down : k === "angry" ? MOUTH.tight : k === "scared" ? MOUTH.open : MOUTH.flat;
+  const eyes =
+    k === "scared" ? (
+      <>
+        <circle cx="24" cy="30" r="5.2" fill="#fffaf3" stroke="#1e1830" strokeWidth="1.4" />
+        <circle cx="40" cy="30" r="5.2" fill="#fffaf3" stroke="#1e1830" strokeWidth="1.4" />
+        <circle cx="24" cy="31" r="2.2" fill="#1e1830" />
+        <circle cx="40" cy="31" r="2.2" fill="#1e1830" />
+      </>
+    ) : (
+      <>
+        <circle cx="24" cy="32" r="2.4" fill="#1e1830" />
+        <circle cx="40" cy="32" r="2.4" fill="#1e1830" />
+      </>
+    );
+  const mouth =
+    k === "happy"
+      ? MOUTH.happy
+      : k === "sad"
+        ? MOUTH.down
+        : k === "angry"
+          ? MOUTH.tight
+          : k === "scared"
+            ? ""
+            : MOUTH.flat;
   return (
     <svg viewBox="0 0 64 64" className="aspect-square w-[30%] max-w-16" aria-hidden>
       <circle cx="32" cy="34" r="22" fill="#e7c2a4" />
-      <circle cx="24" cy="32" r={k === "scared" ? 3.2 : 2.4} fill="#1e1830" />
-      <circle cx="40" cy="32" r={k === "scared" ? 3.2 : 2.4} fill="#1e1830" />
+      {eyes}
       {brows}
-      <path d={mouth} stroke="#1e1830" strokeWidth="2" fill="none" strokeLinecap="round" />
+      {k === "scared" ? (
+        <ellipse cx="32" cy="46" rx="6" ry="7" fill="#1e1830" />
+      ) : (
+        <path d={mouth} stroke="#1e1830" strokeWidth="2" fill="none" strokeLinecap="round" />
+      )}
     </svg>
   );
 }

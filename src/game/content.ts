@@ -105,7 +105,7 @@ export const SITUATIONS: Situation[] = [
     voiceText: "Miremos el juguete y cómo se acercan las dos personas.",
     voice: "/assets/audio/voice/sit-04.mp3",
     image: "/assets/illustrations/s4.jpg",
-    alt: "Un niño usa un juguete mientras otra persona se acerca y observa el objeto.",
+    alt: "Isidora se acerca impaciente al juguete que Joaquín todavía está usando.",
     main: "¿Qué está ocurriendo con el juguete?",
     extra: [
       "¿Quién lo está usando?",
@@ -173,7 +173,7 @@ export const SITUATIONS: Situation[] = [
     voiceText: "Miremos dónde busca y qué hacen las personas en la escena.",
     voice: "/assets/audio/voice/sit-08.mp3",
     image: "/assets/illustrations/s8.jpg",
-    alt: "Un niño busca un objeto especial entre sus pertenencias mientras otra persona lo ayuda a mirar.",
+    alt: "Sofía busca preocupada su objeto especial dentro de la mochila.",
     main: "¿Qué parece estar ocurriendo?",
     extra: [
       "¿Qué parece estar buscando?",

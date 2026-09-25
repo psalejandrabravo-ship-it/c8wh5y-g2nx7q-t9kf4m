@@ -373,6 +373,11 @@ export function Game() {
     if (guide) guideRef.current?.focus();
   }, [guide]);
 
+  useEffect(() => {
+    if (screen !== "closing") return;
+    sfx.applause(settings.effects);
+  }, [screen, settings.effects]);
+
   const stop = () => {
     window.speechSynthesis?.cancel();
     audio.current?.pause();
@@ -715,21 +720,26 @@ export function Game() {
                 else setScreen("closing");
               }}
             >
-              {index < 9 ? "Siguiente situación" : "Cerrar"}
+              {index < 9 ? "Siguiente situación" : "Recibir la medalla"}
             </button>
           </section>
         )}
 
         {screen === "closing" && (
-          <section className="mx-auto flex max-w-3xl flex-col items-center gap-4 text-center">
-            <Scene
-              src="/assets/illustrations/closing.jpg"
-              alt="Un grupo pequeño se detiene juntos, observando con calma."
-            />
-            <h1 className="text-2xl font-extrabold text-indigo">
-              Nos detuvimos, miramos con atención y observamos las señales en los otros.
-            </h1>
-            <p>Las señales pueden ayudarnos a imaginar cómo podría sentirse alguien.</p>
+          <section className="screen-in mx-auto flex max-w-3xl flex-col items-center gap-4 text-center">
+            <div className="title-pop" aria-hidden>
+              <svg viewBox="0 0 120 150" className="h-44 w-36">
+                <path d="M46 48 L30 10 L58 36 Z" fill="#e07a5f" />
+                <path d="M74 48 L90 10 L62 36 Z" fill="#2b2155" />
+                <circle cx="60" cy="84" r="42" fill="#e6b325" />
+                <circle cx="60" cy="84" r="33" fill="#f7f1e4" />
+                <circle cx="60" cy="82" r="10" fill="#2b2155" />
+                <path d="M38 82 Q60 70 82 82 Q60 94 38 82 Z" fill="none" stroke="#2b2155" strokeWidth="3" />
+              </svg>
+            </div>
+            <p className="text-sm font-bold uppercase tracking-wide text-coral">Felicitaciones</p>
+            <h1 className="text-3xl font-extrabold text-indigo">Ahora son Grandes observadores</h1>
+            <p>Se detuvieron, miraron con atención y reconocieron las señales de las otras personas.</p>
             <div className="flex flex-wrap justify-center gap-2">
               <button type="button" className="min-h-12 rounded-full border-2 border-indigo px-4" onClick={() => setMenu(true)}>
                 Volver a una situación

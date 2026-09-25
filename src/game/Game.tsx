@@ -1007,6 +1007,9 @@ export function Game() {
                 reader.readAsDataURL(file);
               }}
             />
+            {settings.instLogo && (
+              <img src={settings.instLogo} alt="" className="mt-2 h-12 max-w-full object-contain" />
+            )}
           </label>
           <label className="mt-3 block text-sm">
             Visibilidad

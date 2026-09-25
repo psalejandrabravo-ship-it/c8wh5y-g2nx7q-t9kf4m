@@ -636,6 +636,13 @@ export function Game() {
                   <button type="button" className="min-h-12 rounded-full border border-white/50 bg-white/15 px-5 font-semibold" onClick={() => setHow(true)}>
                     Cómo se juega
                   </button>
+                  <a
+                    href="/Grandes-observadores-situaciones.pdf"
+                    download="Grandes-observadores-situaciones.pdf"
+                    className="inline-flex min-h-12 items-center rounded-full border border-white/50 bg-white/15 px-5 font-semibold"
+                  >
+                    Descargar PDF
+                  </a>
                   <button type="button" className="min-h-12 rounded-full border border-white/50 bg-white/15 px-5 font-semibold" onClick={() => setConfig(true)}>
                     Configuración
                   </button>
@@ -913,6 +920,13 @@ export function Game() {
             <li>Cuando la escena está completa, lean qué pasó.</li>
             <li>Elijan el rostro que mejor acompaña la situación.</li>
           </ul>
+          <a
+            href="/Grandes-observadores-situaciones.pdf"
+            download="Grandes-observadores-situaciones.pdf"
+            className="mt-4 inline-flex min-h-11 items-center rounded-full bg-coral px-4 font-extrabold text-paper"
+          >
+            Descargar las 10 situaciones
+          </a>
         </Modal>
       )}
 

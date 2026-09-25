@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { BookOpen, Maximize2, Minimize2, MoreHorizontal, Play, Volume2, VolumeX } from "lucide-react";
 import { AFTER_ASK, GUIDE_COMMON, SITUATIONS, VIDEO_SRC, type Situation } from "./content";
 import { EmojiFace } from "./EmojiFace";
@@ -382,11 +382,6 @@ export function Game() {
     if (guide) guideRef.current?.focus();
   }, [guide]);
 
-  useEffect(() => {
-    if (screen !== "closing") return;
-    sfx.applause(settings.effects);
-  }, [screen, settings.effects]);
-
   const stop = () => {
     window.speechSynthesis?.cancel();
     audio.current?.pause();
@@ -702,6 +697,10 @@ export function Game() {
           </>
         )}
 
+        {(screen === "closing" || (screen === "situation" && verdict === "ok")) && (
+          <Confetti count={screen === "closing" ? 72 : 26} />
+        )}
+
         {screen === "situation" && phase === "after" && verdict === null && (
           <section className="screen-in mx-auto flex w-full max-w-4xl flex-col gap-4">
             <p className="text-2xl font-extrabold text-indigo">{beat.story}</p>
@@ -744,7 +743,10 @@ export function Game() {
               onClick={() => {
                 stop();
                 if (index < 9) openSit(index + 1, true);
-                else setScreen("closing");
+                else {
+                  sfx.applause(settings.effects);
+                  setScreen("closing");
+                }
               }}
             >
               {index < 9 ? "Siguiente situación" : "Recibir la medalla"}
@@ -1064,6 +1066,43 @@ export function Game() {
           </button>
         </Modal>
       )}
+    </div>
+  );
+}
+
+function Confetti({ count }: { count: number }) {
+  const bits = useMemo(
+    () =>
+      Array.from({ length: count }, (_, i) => ({
+        id: i,
+        left: Math.random() * 100,
+        delay: Math.random() * 0.45,
+        duration: 2.2 + Math.random() * 1.6,
+        color: ["#e07a5f", "#e6b84c", "#2b2155", "#fffaf3", "#6f8f9a"][i % 5],
+        drift: `${-40 + Math.random() * 80}px`,
+        spin: `${180 + Math.random() * 540}deg`,
+        width: 7 + (i % 4) * 3,
+      })),
+    [count],
+  );
+  return (
+    <div className="pointer-events-none fixed inset-0 z-40 overflow-hidden" aria-hidden>
+      {bits.map((bit) => (
+        <span
+          key={bit.id}
+          className="confetti-bit"
+          style={{
+            left: `${bit.left}%`,
+            width: bit.width,
+            height: bit.width * 0.55,
+            background: bit.color,
+            animationDelay: `${bit.delay}s`,
+            animationDuration: `${bit.duration}s`,
+            ["--drift" as string]: bit.drift,
+            ["--spin" as string]: bit.spin,
+          }}
+        />
+      ))}
     </div>
   );
 }

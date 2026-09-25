@@ -58,17 +58,20 @@ function shrinkLogo(dataUrl: string): Promise<string> {
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.onload = () => {
+      const max = 640;
+      const scale = Math.min(1, max / Math.max(img.width, img.height));
       const canvas = document.createElement("canvas");
-      const scale = 160 / Math.max(img.width, img.height);
-      canvas.width = Math.max(1, Math.round(img.width * Math.min(1, scale)));
-      canvas.height = Math.max(1, Math.round(img.height * Math.min(1, scale)));
+      canvas.width = Math.max(1, Math.round(img.width * scale));
+      canvas.height = Math.max(1, Math.round(img.height * scale));
       const ctx = canvas.getContext("2d");
       if (!ctx) {
         reject(new Error("canvas"));
         return;
       }
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
       ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-      resolve(canvas.toDataURL("image/jpeg", 0.72));
+      const png = canvas.toDataURL("image/png");
+      resolve(png.length < 320000 ? png : canvas.toDataURL("image/jpeg", 0.82));
     };
     img.onerror = () => reject(new Error("image"));
     img.src = dataUrl;
@@ -326,7 +329,7 @@ export function Game() {
         };
         if (p.m) s.logoMode = p.m;
         if (typeof p.n === "string") s.instName = p.n.slice(0, 80);
-        if (typeof p.l === "string" && p.l.startsWith("data:image") && p.l.length < 80000) s.instLogo = p.l;
+        if (typeof p.l === "string" && p.l.startsWith("data:image") && p.l.length < 320000) s.instLogo = p.l;
       } catch {
         /* enlace incompleto: seguimos con lo guardado */
       }
@@ -457,7 +460,11 @@ export function Game() {
             <img src="/assets/brand/MIRARIM-horizontal-blanco.svg" alt="MIRARIM" className="h-8 w-auto" />
           )}
           {showInst && settings.instLogo && (
-            <img src={settings.instLogo} alt={settings.instName || "Logo institucional"} className="h-8 w-auto" />
+            <img
+              src={settings.instLogo}
+              alt={settings.instName || "Logo institucional"}
+              className="h-8 max-w-40 rounded-md bg-paper px-2 py-1 object-contain"
+            />
           )}
           {showInst && settings.instName && !settings.instLogo && (
             <span className="text-sm font-extrabold tracking-wide">{settings.instName}</span>
@@ -562,7 +569,21 @@ export function Game() {
                 </button>
               </div>
               <div className="flex flex-1 flex-col items-center justify-center gap-3 px-4 pb-10 text-center">
-                <img src="/assets/brand/MIRARIM-horizontal-blanco.svg" alt="MIRARIM" className="h-8 w-auto" />
+              <div className="flex flex-col items-center gap-2">
+                {showMirarim && (
+                  <img src="/assets/brand/MIRARIM-horizontal-blanco.svg" alt="MIRARIM" className="h-8 w-auto" />
+                )}
+                {showInst && settings.instLogo && (
+                  <img
+                    src={settings.instLogo}
+                    alt={settings.instName || "Logo institucional"}
+                    className="h-16 max-w-xs rounded-xl bg-paper px-4 py-2 object-contain"
+                  />
+                )}
+                {showInst && settings.instName && (
+                  <p className="text-lg font-extrabold">{settings.instName}</p>
+                )}
+              </div>
                 <h1 className="text-4xl font-extrabold sm:text-5xl">Grandes observadores</h1>
                 <p className="text-lg">Nos detenemos y miramos con atención.</p>
                 <p className="text-sm font-bold text-gold">10 situaciones · para mirar juntos</p>
@@ -965,16 +986,24 @@ export function Game() {
             Logo institucional
             <input
               type="file"
-              accept="image/png,image/jpeg,image/webp"
+              accept="image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp"
               className="mt-1 block w-full"
               onChange={(e) => {
                 const file = e.target.files?.[0];
-                if (!file || file.size > 300000) {
-                  window.alert("No pudimos usar este archivo. Prueba con una imagen PNG, JPG o WebP.");
+                e.target.value = "";
+                const name = file?.name.toLowerCase() ?? "";
+                const typeOk = !!file && (file.type.startsWith("image/") || /\.(png|jpe?g|webp)$/.test(name));
+                if (!file || !typeOk || file.size > 8_000_000) {
+                  window.alert("No pudimos usar este archivo. Prueba con un PNG, JPG o WebP de menos de 8 MB.");
                   return;
                 }
                 const reader = new FileReader();
-                reader.onload = () => setSettings((s) => ({ ...s, instLogo: String(reader.result || "") }));
+                reader.onerror = () => window.alert("No pudimos leer este archivo. Prueba con otro PNG o JPG.");
+                reader.onload = () => {
+                  void shrinkLogo(String(reader.result || ""))
+                    .then((logo) => setSettings((s) => ({ ...s, instLogo: logo, logoMode: "institutional" })))
+                    .catch(() => window.alert("No pudimos leer este archivo. Prueba con otro PNG o JPG."));
+                };
                 reader.readAsDataURL(file);
               }}
             />

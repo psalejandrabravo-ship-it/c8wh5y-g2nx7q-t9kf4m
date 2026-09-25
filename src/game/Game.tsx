@@ -54,14 +54,13 @@ function load(): Settings {
   }
 }
 
-function shrinkLogo(dataUrl: string): Promise<string> {
+function shrinkLogo(dataUrl: string, limit = 280000, start = 720): Promise<string> {
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.onload = () => {
-      const limit = 280000;
-      let max = 720;
+      let max = start;
       let png = "";
-      while (max >= 80) {
+      while (max >= 48) {
         const scale = Math.min(1, max / Math.max(img.width, img.height));
         const canvas = document.createElement("canvas");
         canvas.width = Math.max(1, Math.round(img.width * scale));
@@ -75,13 +74,50 @@ function shrinkLogo(dataUrl: string): Promise<string> {
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
         png = canvas.toDataURL("image/png");
         if (png.length < limit) break;
-        max = Math.round(max * 0.7);
+        max = Math.round(max * 0.72);
       }
       resolve(png);
     };
     img.onerror = () => reject(new Error("image"));
     img.src = dataUrl;
   });
+}
+
+function decodeOnce(value: string) {
+  if (!/%[0-9A-Fa-f]{2}/.test(value)) return value;
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+}
+
+function readShare(hash: string): { m?: LogoMode; n?: string; l?: string } | null {
+  const body = hash.startsWith("#") ? hash.slice(1) : hash;
+  if (!body) return null;
+  try {
+    if (body.startsWith("mirarim=")) {
+      const parsed = JSON.parse(decodeOnce(body.slice("mirarim=".length))) as {
+        m?: LogoMode;
+        n?: string;
+        l?: string;
+      };
+      return parsed;
+    }
+    const out: { m?: LogoMode; n?: string; l?: string } = {};
+    for (const part of body.split("&")) {
+      const i = part.indexOf("=");
+      if (i < 0) continue;
+      const key = decodeOnce(part.slice(0, i));
+      const value = decodeOnce(part.slice(i + 1));
+      if (key === "m") out.m = value as LogoMode;
+      if (key === "n") out.n = value;
+      if (key === "l") out.l = value;
+    }
+    return out.m || out.n || out.l ? out : null;
+  } catch {
+    return null;
+  }
 }
 
 const CLIP: Record<PieceId, string> = {
@@ -323,21 +359,14 @@ export function Game() {
 
   useEffect(() => {
     const s = load();
-    const raw = window.location.hash.startsWith("#mirarim=")
-      ? window.location.hash.slice("#mirarim=".length)
-      : "";
-    if (raw) {
-      try {
-        const p = JSON.parse(decodeURIComponent(raw)) as {
-          m?: Settings["logoMode"];
-          n?: string;
-          l?: string;
-        };
-        if (p.m) s.logoMode = p.m;
-        if (typeof p.n === "string") s.instName = p.n.slice(0, 80);
-        if (typeof p.l === "string" && p.l.startsWith("data:image") && p.l.length < 320000) s.instLogo = p.l;
-      } catch {
-        /* enlace incompleto: seguimos con lo guardado */
+    const shared = readShare(window.location.hash);
+    if (shared) {
+      if (shared.m === "mirarim" || shared.m === "institutional" || shared.m === "both" || shared.m === "none") {
+        s.logoMode = shared.m;
+      }
+      if (typeof shared.n === "string") s.instName = shared.n.slice(0, 80);
+      if (typeof shared.l === "string" && shared.l.startsWith("data:image") && shared.l.length < 320000) {
+        s.instLogo = shared.l;
       }
     }
     setSettings(s);
@@ -1039,13 +1068,15 @@ export function Game() {
               let logo = settings.instLogo;
               if (logo) {
                 try {
-                  logo = await shrinkLogo(logo);
+                  logo = await shrinkLogo(logo, 4500, 240);
                 } catch {
-                  logo = settings.instLogo;
+                  logo = null;
                 }
               }
-              const payload = { m: settings.logoMode, n: settings.instName, l: logo };
-              const url = `${window.location.origin}${window.location.pathname}#mirarim=${encodeURIComponent(JSON.stringify(payload))}`;
+              const parts = [`m=${encodeURIComponent(settings.logoMode)}`];
+              if (settings.instName) parts.push(`n=${encodeURIComponent(settings.instName)}`);
+              if (logo) parts.push(`l=${encodeURIComponent(logo)}`);
+              const url = `${window.location.origin}${window.location.pathname}#${parts.join("&")}`;
               setShareUrl(url);
               try {
                 await navigator.clipboard.writeText(url);
@@ -1056,7 +1087,11 @@ export function Game() {
           >
             Crear enlace
           </button>
-          {shareUrl && <p className="mt-3 break-all text-sm">Enlace con este logo y este nombre: {shareUrl}</p>}
+          {shareUrl && (
+            <p className="mt-3 break-all text-sm">
+              Enlace copiado. Ábrelo completo en el otro computador: incluye el nombre y el logo. {shareUrl}
+            </p>
+          )}
           <button
             type="button"
             className="mt-3 min-h-11 rounded-full border-2 border-indigo px-4"

@@ -637,11 +637,18 @@ export function Game() {
                     Cómo se juega
                   </button>
                   <a
-                    href="/Grandes-observadores-situaciones.pdf"
-                    download="Grandes-observadores-situaciones.pdf"
+                    href="/Grandes-observadores-4-5.pdf"
+                    download="Grandes-observadores-4-5.pdf"
                     className="inline-flex min-h-12 items-center rounded-full border border-white/50 bg-white/15 px-5 font-semibold"
                   >
-                    Descargar para recortar
+                    Recortar 4 a 5 años
+                  </a>
+                  <a
+                    href="/Grandes-observadores-6-8.pdf"
+                    download="Grandes-observadores-6-8.pdf"
+                    className="inline-flex min-h-12 items-center rounded-full border border-white/50 bg-white/15 px-5 font-semibold"
+                  >
+                    Recortar 6 a 8 años
                   </a>
                   <button type="button" className="min-h-12 rounded-full border border-white/50 bg-white/15 px-5 font-semibold" onClick={() => setConfig(true)}>
                     Configuración
@@ -920,13 +927,22 @@ export function Game() {
             <li>Cuando la escena está completa, lean qué pasó.</li>
             <li>Elijan el rostro que mejor acompaña la situación.</li>
           </ul>
-          <a
-            href="/Grandes-observadores-situaciones.pdf"
-            download="Grandes-observadores-situaciones.pdf"
-            className="mt-4 inline-flex min-h-11 items-center rounded-full bg-coral px-4 font-extrabold text-paper"
-          >
-            Descargar para recortar
-          </a>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <a
+              href="/Grandes-observadores-4-5.pdf"
+              download="Grandes-observadores-4-5.pdf"
+              className="inline-flex min-h-11 items-center rounded-full bg-coral px-4 font-extrabold text-paper"
+            >
+              Recortar 4 a 5 años
+            </a>
+            <a
+              href="/Grandes-observadores-6-8.pdf"
+              download="Grandes-observadores-6-8.pdf"
+              className="inline-flex min-h-11 items-center rounded-full border-2 border-indigo px-4 font-extrabold"
+            >
+              Recortar 6 a 8 años
+            </a>
+          </div>
         </Modal>
       )}
 

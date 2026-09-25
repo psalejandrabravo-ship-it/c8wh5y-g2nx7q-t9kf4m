@@ -119,6 +119,7 @@ function Puzzle({
   resetKey: number;
 }) {
   const [pieces, setPieces] = useState<Piece[]>(() => freshPieces(seed));
+  const piecesRef = useRef(pieces);
   const [done, setDone] = useState(false);
   const [dragging, setDragging] = useState(false);
   const board = useRef<HTMLDivElement>(null);
@@ -127,9 +128,12 @@ function Puzzle({
   const finished = useRef(false);
 
   useEffect(() => {
-    setPieces(freshPieces(seed + resetKey));
+    const next = freshPieces(seed + resetKey);
+    piecesRef.current = next;
+    setPieces(next);
     setDone(false);
     finished.current = false;
+    drag.current = null;
   }, [seed, resetKey]);
 
   const pct = (cx: number, cy: number) => {
@@ -139,22 +143,22 @@ function Puzzle({
   };
 
   const finishDrag = () => {
-    if (!drag.current || done) return;
+    const active = drag.current;
+    if (!active || finished.current) return;
     drag.current = null;
     setDragging(false);
-    setPieces((cur) => {
-      const res = trySnap(cur);
-      if (res.snapped) sfx.snap(effects);
-      else sfx.miss(effects);
-      if (isComplete(res.pieces) && !finished.current) {
-        finished.current = true;
-        setDone(true);
-        sfx.done(effects);
-        if (live.current) live.current.textContent = "La escena está completa.";
-        window.setTimeout(() => onDone(), 700);
-      }
-      return res.pieces;
-    });
+    const res = trySnap(piecesRef.current);
+    if (res.snapped) sfx.snap(effects);
+    else sfx.miss(effects);
+    piecesRef.current = res.pieces;
+    if (isComplete(res.pieces)) {
+      finished.current = true;
+      setDone(true);
+      sfx.done(effects);
+      if (live.current) live.current.textContent = "La escena está completa.";
+      window.setTimeout(() => onDone(), 700);
+    }
+    setPieces(res.pieces);
   };
 
   const nudge = (id: PieceId, dx: number, dy: number) => {
@@ -180,26 +184,27 @@ function Puzzle({
       ref={board}
       className="relative mx-auto aspect-[3/2] w-full max-w-5xl touch-none overflow-hidden rounded-card bg-paper"
       onPointerMove={(e) => {
-        if (!drag.current) return;
+        const active = drag.current;
+        if (!active || finished.current) return;
         const p = pct(e.clientX, e.clientY);
-        const dx = p.x - drag.current.x;
-        const dy = p.y - drag.current.y;
-        drag.current = { group: drag.current.group, x: p.x, y: p.y };
-        setPieces((cur) => {
-          const moved = moveGroup(cur, drag.current!.group, dx, dy);
-          const pulled = magnet(moved, drag.current!.group);
-          if (pulled.locked) sfx.snap(effects);
-          if (isComplete(pulled.pieces) && !finished.current) {
-            finished.current = true;
-            drag.current = null;
-            setDragging(false);
-            setDone(true);
-            sfx.done(effects);
-            if (live.current) live.current.textContent = "La escena está completa.";
-            window.setTimeout(() => onDone(), 700);
-          }
-          return pulled.pieces;
-        });
+        const dx = p.x - active.x;
+        const dy = p.y - active.y;
+        const group = active.group;
+        drag.current = { group, x: p.x, y: p.y };
+        const moved = moveGroup(piecesRef.current, group, dx, dy);
+        const pulled = magnet(moved, group);
+        if (pulled.locked) sfx.snap(effects);
+        piecesRef.current = pulled.pieces;
+        if (isComplete(pulled.pieces)) {
+          finished.current = true;
+          drag.current = null;
+          setDragging(false);
+          setDone(true);
+          sfx.done(effects);
+          if (live.current) live.current.textContent = "La escena está completa.";
+          window.setTimeout(() => onDone(), 700);
+        }
+        setPieces(pulled.pieces);
       }}
       onPointerUp={finishDrag}
       onPointerCancel={finishDrag}

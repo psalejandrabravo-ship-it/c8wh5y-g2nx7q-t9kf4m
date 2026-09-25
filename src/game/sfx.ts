@@ -7,20 +7,24 @@ function ac() {
 }
 
 function tone(freq: number, duration: number, gain = 0.05, slide?: number) {
-  const c = ac();
-  if (!c) return;
-  void c.resume();
-  const osc = c.createOscillator();
-  const g = c.createGain();
-  osc.type = "sine";
-  osc.frequency.value = freq;
-  if (slide) osc.frequency.exponentialRampToValueAtTime(slide, c.currentTime + duration);
-  g.gain.value = gain;
-  g.gain.exponentialRampToValueAtTime(0.001, c.currentTime + duration);
-  osc.connect(g);
-  g.connect(c.destination);
-  osc.start();
-  osc.stop(c.currentTime + duration);
+  try {
+    const c = ac();
+    if (!c) return;
+    void c.resume();
+    const osc = c.createOscillator();
+    const g = c.createGain();
+    osc.type = "sine";
+    osc.frequency.value = freq;
+    if (slide) osc.frequency.exponentialRampToValueAtTime(slide, c.currentTime + duration);
+    g.gain.value = gain;
+    g.gain.exponentialRampToValueAtTime(0.001, c.currentTime + duration);
+    osc.connect(g);
+    g.connect(c.destination);
+    osc.start();
+    osc.stop(c.currentTime + duration);
+  } catch {
+    /* un sonido fallido no debe interrumpir el juego */
+  }
 }
 
 export const sfx = {

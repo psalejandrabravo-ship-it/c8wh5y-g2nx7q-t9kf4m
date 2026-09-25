@@ -126,6 +126,19 @@ function Puzzle({
   const drag = useRef<{ group: number; x: number; y: number } | null>(null);
   const live = useRef<HTMLDivElement>(null);
   const finished = useRef(false);
+  const timer = useRef<number | null>(null);
+
+  const armDone = () => {
+    if (finished.current) return;
+    finished.current = true;
+    drag.current = null;
+    setDragging(false);
+    setDone(true);
+    sfx.done(effects);
+    if (live.current) live.current.textContent = "La escena está completa.";
+    if (timer.current) window.clearTimeout(timer.current);
+    timer.current = window.setTimeout(() => onDone(), 700);
+  };
 
   useEffect(() => {
     const next = freshPieces(seed + resetKey);
@@ -134,7 +147,14 @@ function Puzzle({
     setDone(false);
     finished.current = false;
     drag.current = null;
+    if (timer.current) window.clearTimeout(timer.current);
   }, [seed, resetKey]);
+
+  useEffect(() => {
+    return () => {
+      if (timer.current) window.clearTimeout(timer.current);
+    };
+  }, []);
 
   const pct = (cx: number, cy: number) => {
     const r = board.current?.getBoundingClientRect();
@@ -143,22 +163,21 @@ function Puzzle({
   };
 
   const finishDrag = () => {
-    const active = drag.current;
-    if (!active || finished.current) return;
-    drag.current = null;
-    setDragging(false);
-    const res = trySnap(piecesRef.current);
-    if (res.snapped) sfx.snap(effects);
-    else sfx.miss(effects);
-    piecesRef.current = res.pieces;
-    if (isComplete(res.pieces)) {
-      finished.current = true;
-      setDone(true);
-      sfx.done(effects);
-      if (live.current) live.current.textContent = "La escena está completa.";
-      window.setTimeout(() => onDone(), 700);
+    try {
+      const active = drag.current;
+      if (!active || finished.current) return;
+      drag.current = null;
+      setDragging(false);
+      const res = trySnap(piecesRef.current);
+      if (res.snapped) sfx.snap(effects);
+      else sfx.miss(effects);
+      piecesRef.current = res.pieces;
+      if (isComplete(res.pieces)) armDone();
+      setPieces(res.pieces);
+    } catch {
+      drag.current = null;
+      setDragging(false);
     }
-    setPieces(res.pieces);
   };
 
   const nudge = (id: PieceId, dx: number, dy: number) => {
@@ -166,16 +185,16 @@ function Puzzle({
     const piece = pieces.find((p) => p.id === id);
     if (!piece) return;
     setPieces((cur) => {
-      const moved = moveGroup(cur, piece.group, dx, dy);
-      const res = trySnap(moved);
-      if (res.snapped) sfx.snap(effects);
-      if (isComplete(res.pieces) && !finished.current) {
-        finished.current = true;
-        setDone(true);
-        sfx.done(effects);
-        window.setTimeout(() => onDone(), 700);
+      try {
+        const moved = moveGroup(cur, piece.group, dx, dy);
+        const res = trySnap(moved);
+        if (res.snapped) sfx.snap(effects);
+        piecesRef.current = res.pieces;
+        if (isComplete(res.pieces)) armDone();
+        return res.pieces;
+      } catch {
+        return cur;
       }
-      return res.pieces;
     });
   };
 
@@ -186,51 +205,48 @@ function Puzzle({
       onPointerMove={(e) => {
         const active = drag.current;
         if (!active || finished.current) return;
-        const p = pct(e.clientX, e.clientY);
-        const dx = p.x - active.x;
-        const dy = p.y - active.y;
-        const group = active.group;
-        drag.current = { group, x: p.x, y: p.y };
-        const moved = moveGroup(piecesRef.current, group, dx, dy);
-        const pulled = magnet(moved, group);
-        if (pulled.locked) sfx.snap(effects);
-        piecesRef.current = pulled.pieces;
-        if (isComplete(pulled.pieces)) {
-          finished.current = true;
+        try {
+          const point = pct(e.clientX, e.clientY);
+          const dx = point.x - active.x;
+          const dy = point.y - active.y;
+          const group = active.group;
+          drag.current = { group, x: point.x, y: point.y };
+          const moved = moveGroup(piecesRef.current, group, dx, dy);
+          const pulled = magnet(moved, group);
+          if (pulled.locked) sfx.snap(effects);
+          piecesRef.current = pulled.pieces;
+          if (isComplete(pulled.pieces)) armDone();
+          setPieces(pulled.pieces);
+        } catch {
           drag.current = null;
           setDragging(false);
-          setDone(true);
-          sfx.done(effects);
-          if (live.current) live.current.textContent = "La escena está completa.";
-          window.setTimeout(() => onDone(), 700);
         }
-        setPieces(pulled.pieces);
       }}
       onPointerUp={finishDrag}
       onPointerCancel={finishDrag}
     >
-      {pieces.map((p) => (
+      {pieces.filter((piece) => piece && typeof piece.group === "number").map((piece) => (
         <button
-          key={p.id}
+          key={piece.id}
           type="button"
-          aria-label={`Pieza ${PIECES.indexOf(p.id) + 1} de 4`}
+          aria-label={`Pieza ${PIECES.indexOf(piece.id) + 1} de 4`}
           className="absolute h-full w-full border-0 bg-transparent p-0"
           style={{
-            clipPath: CLIP[p.id],
+            clipPath: CLIP[piece.id],
             backgroundImage: `url(${image})`,
             backgroundSize: "100% 100%",
             backgroundRepeat: "no-repeat",
-            transform: `translate(${p.x}%, ${p.y}%) scale(${done ? 1 : 0.5})`,
+            transform: `translate(${piece.x}%, ${piece.y}%) scale(${done ? 1 : 0.5})`,
             transformOrigin: ORIGIN,
             transition: dragging ? "none" : "transform 0.35s ease",
             filter: "drop-shadow(0 8px 6px rgba(30,24,48,0.22))",
-            zIndex: drag.current?.group === p.group ? 5 : 1,
+            zIndex: drag.current?.group === piece.group ? 5 : 1,
           }}
           onPointerDown={(e) => {
-            if (done) return;
+            if (done || finished.current) return;
             e.currentTarget.setPointerCapture(e.pointerId);
             const pt = pct(e.clientX, e.clientY);
-            drag.current = { group: p.group, x: pt.x, y: pt.y };
+            drag.current = { group: piece.group, x: pt.x, y: pt.y };
             setDragging(true);
             sfx.pickup(effects);
           }}
@@ -238,24 +254,24 @@ function Puzzle({
             const step = e.shiftKey ? 8 : 4;
             if (e.key === "ArrowLeft") {
               e.preventDefault();
-              nudge(p.id, -step, 0);
+              nudge(piece.id, -step, 0);
             }
             if (e.key === "ArrowRight") {
               e.preventDefault();
-              nudge(p.id, step, 0);
+              nudge(piece.id, step, 0);
             }
             if (e.key === "ArrowUp") {
               e.preventDefault();
-              nudge(p.id, 0, -step);
+              nudge(piece.id, 0, -step);
             }
             if (e.key === "ArrowDown") {
               e.preventDefault();
-              nudge(p.id, 0, step);
+              nudge(piece.id, 0, step);
             }
             if (e.key === "Enter" || e.key === " ") {
               e.preventDefault();
-              const t = TARGET[p.id];
-              nudge(p.id, (t.x - p.x) * 0.65, (t.y - p.y) * 0.65);
+              const t = TARGET[piece.id];
+              nudge(piece.id, (t.x - piece.x) * 0.65, (t.y - piece.y) * 0.65);
             }
           }}
         />
@@ -418,8 +434,8 @@ export function Game() {
     setVerdict(null);
   };
 
-  const sit: Situation = SITUATIONS[index];
-  const beat = PLAY[index];
+  const sit: Situation = SITUATIONS[index] ?? SITUATIONS[0];
+  const beat = PLAY[index] ?? PLAY[0];
   const pad = String(sit.id).padStart(2, "0");
   const voiceAntes = `/assets/audio/voice/sit-${pad}-antes.mp3`;
   const voiceDespues = `/assets/audio/voice/sit-${pad}-despues.mp3`;
@@ -610,6 +626,7 @@ export function Game() {
             </p>
             <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_17rem]">
               <Puzzle
+                key={`${sit.id}-${resetKey}`}
                 image={sit.image}
                 alt={sit.alt}
                 seed={sit.id}

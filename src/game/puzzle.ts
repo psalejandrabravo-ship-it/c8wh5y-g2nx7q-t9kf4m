@@ -17,12 +17,21 @@ const START: Record<PieceId, { x: number; y: number }>[] = [
 ];
 
 export function freshPieces(seed: number): Piece[] {
-  const layout = START[seed % START.length];
+  const n = Number.isFinite(seed) ? Math.abs(Math.floor(seed)) : 0;
+  const layout = START[n % START.length] ?? START[0];
   return PIECES.map((id, i) => ({ id, x: layout[id].x, y: layout[id].y, group: i + 1 }));
 }
 
+function pieceOk(p: Piece | null | undefined): p is Piece {
+  return !!p && typeof p.group === "number" && (p.id === "tl" || p.id === "tr" || p.id === "bl" || p.id === "br");
+}
+
+export function sanitize(pieces: Piece[] | null | undefined, seed = 0): Piece[] {
+  if (!Array.isArray(pieces) || pieces.length !== 4 || pieces.some((p) => !pieceOk(p))) return freshPieces(seed);
+  return pieces;
+}
 export function moveGroup(pieces: Piece[], group: number, dx: number, dy: number): Piece[] {
-  return pieces.map((p) =>
+  return sanitize(pieces).map((p) =>
     p.group === group
       ? { ...p, x: clamp(p.x + dx, -58, 58), y: clamp(p.y + dy, -58, 58) }
       : p,
@@ -42,35 +51,38 @@ const SNAP = 14;
 export const MAGNET_PULL = 20;
 
 export function magnet(pieces: Piece[], group: number): { pieces: Piece[]; locked: boolean } {
+  const list = sanitize(pieces);
   let best: { dx: number; dy: number; dist: number } | null = null;
-  for (const a of pieces) {
+  for (const a of list) {
     if (a.group !== group) continue;
-    for (const b of pieces) {
-      if (b.group === group || !adjacent(a.id, b.id)) continue;
+    for (const b of list) {
+      if (!b || b.group === group || !adjacent(a.id, b.id)) continue;
       const expectX = TARGET[a.id].x - TARGET[b.id].x;
       const expectY = TARGET[a.id].y - TARGET[b.id].y;
       const dx = b.x + expectX - a.x;
       const dy = b.y + expectY - a.y;
       const dist = Math.hypot(dx, dy);
+      if (!Number.isFinite(dist)) continue;
       if (!best || dist < best.dist) best = { dx, dy, dist };
     }
   }
-  if (!best || best.dist > MAGNET_PULL) return { pieces, locked: false };
+  if (!best || best.dist > MAGNET_PULL) return { pieces: list, locked: false };
   if (best.dist <= SNAP) {
-    const snapped = trySnap(pieces);
+    const snapped = trySnap(list);
     return { pieces: snapped.pieces, locked: snapped.snapped };
   }
-  const strength = 0.35 + (1 - best.dist / MAGNET_PULL) * 0.4;
+  const pull = best;
+  const strength = 0.35 + (1 - pull.dist / MAGNET_PULL) * 0.4;
   return {
-    pieces: pieces.map((p) =>
-      p.group === group ? { ...p, x: p.x + best.dx * strength, y: p.y + best.dy * strength } : p,
+    pieces: list.map((p) =>
+      p.group === group ? { ...p, x: p.x + pull.dx * strength, y: p.y + pull.dy * strength } : p,
     ),
     locked: false,
   };
 }
 
 export function trySnap(pieces: Piece[]): { pieces: Piece[]; snapped: boolean } {
-  let next = pieces.map((p) => ({ ...p }));
+  let next = sanitize(pieces).map((p) => ({ ...p }));
   let snapped = false;
   let guard = 0;
   while (guard++ < 6) {
@@ -79,15 +91,21 @@ export function trySnap(pieces: Piece[]): { pieces: Piece[]; snapped: boolean } 
       for (let j = i + 1; j < next.length; j++) {
         const a = next[i];
         const b = next[j];
-        if (a.group === b.group || !adjacent(a.id, b.id)) continue;
+        if (!a || !b || a.group === b.group || !adjacent(a.id, b.id)) continue;
         const expectX = TARGET[a.id].x - TARGET[b.id].x;
         const expectY = TARGET[a.id].y - TARGET[b.id].y;
-        if (Math.abs(a.x - b.x - expectX) > SNAP || Math.abs(a.y - b.y - expectY) > SNAP) continue;
-        const drop = Math.max(a.group, b.group);
+        const dx = b.x + expectX - a.x;
+        const dy = b.y + expectY - a.y;
+        if (!Number.isFinite(dx) || !Number.isFinite(dy)) continue;
+        if (Math.abs(dx) > SNAP || Math.abs(dy) > SNAP) continue;
         const keep = Math.min(a.group, b.group);
-        const ox = a.x - (b.x + expectX);
-        const oy = a.y - (b.y + expectY);
-        next = next.map((p) => (p.group === drop ? { ...p, group: keep, x: p.x + ox, y: p.y + oy } : p));
+        const from = a.group;
+        const onto = b.group;
+        next = next.map((p) => {
+          if (p.group === from) return { ...p, group: keep, x: p.x + dx, y: p.y + dy };
+          if (p.group === onto) return { ...p, group: keep };
+          return p;
+        });
         snapped = true;
         hit = true;
       }
@@ -101,8 +119,9 @@ export function trySnap(pieces: Piece[]): { pieces: Piece[]; snapped: boolean } 
 }
 
 export function isComplete(pieces: Piece[]) {
+  const list = sanitize(pieces);
   return (
-    new Set(pieces.map((p) => p.group)).size === 1 &&
-    pieces.every((p) => Math.abs(p.x - TARGET[p.id].x) < 1.2 && Math.abs(p.y - TARGET[p.id].y) < 1.2)
+    new Set(list.map((p) => p.group)).size === 1 &&
+    list.every((p) => Math.abs(p.x - TARGET[p.id].x) < 1.2 && Math.abs(p.y - TARGET[p.id].y) < 1.2)
   );
 }

@@ -58,20 +58,26 @@ function shrinkLogo(dataUrl: string): Promise<string> {
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.onload = () => {
-      const max = 640;
-      const scale = Math.min(1, max / Math.max(img.width, img.height));
-      const canvas = document.createElement("canvas");
-      canvas.width = Math.max(1, Math.round(img.width * scale));
-      canvas.height = Math.max(1, Math.round(img.height * scale));
-      const ctx = canvas.getContext("2d");
-      if (!ctx) {
-        reject(new Error("canvas"));
-        return;
+      const limit = 280000;
+      let max = 720;
+      let png = "";
+      while (max >= 80) {
+        const scale = Math.min(1, max / Math.max(img.width, img.height));
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.max(1, Math.round(img.width * scale));
+        canvas.height = Math.max(1, Math.round(img.height * scale));
+        const ctx = canvas.getContext("2d", { alpha: true });
+        if (!ctx) {
+          reject(new Error("canvas"));
+          return;
+        }
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        png = canvas.toDataURL("image/png");
+        if (png.length < limit) break;
+        max = Math.round(max * 0.7);
       }
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-      const png = canvas.toDataURL("image/png");
-      resolve(png.length < 320000 ? png : canvas.toDataURL("image/jpeg", 0.82));
+      resolve(png);
     };
     img.onerror = () => reject(new Error("image"));
     img.src = dataUrl;
@@ -463,7 +469,7 @@ export function Game() {
             <img
               src={settings.instLogo}
               alt={settings.instName || "Logo institucional"}
-              className="h-8 max-w-40 rounded-md bg-paper px-2 py-1 object-contain"
+              className="h-8 max-w-40 object-contain"
             />
           )}
           {showInst && settings.instName && !settings.instLogo && (
@@ -577,7 +583,7 @@ export function Game() {
                   <img
                     src={settings.instLogo}
                     alt={settings.instName || "Logo institucional"}
-                    className="h-16 max-w-xs rounded-xl bg-paper px-4 py-2 object-contain"
+                    className="h-16 max-w-xs object-contain"
                   />
                 )}
                 {showInst && settings.instName && (

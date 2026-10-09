@@ -1,10 +1,11 @@
 export default async function handler(req, res) {
   const pase = req.query.t || '';
-  const secreto = process.env.MIRARIM_LAUNCH_SECRET;
-  if (!pase || !secreto) return res.status(403).send('Acceso no disponible');
+  if (!pase) return res.status(403).send('Acceso no disponible');
+  const headers = { 'Content-Type': 'application/json' };
+  if (process.env.MIRARIM_LAUNCH_SECRET) headers['x-mirarim-secret'] = process.env.MIRARIM_LAUNCH_SECRET;
   const respuesta = await fetch('https://www.mirarim.cl/api/juegos/canjear', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'x-mirarim-secret': secreto },
+    headers,
     body: JSON.stringify({ pase }),
   });
   const data = await respuesta.json().catch(() => ({}));

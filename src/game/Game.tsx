@@ -1,10 +1,29 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { BookOpen, Maximize2, Minimize2, MoreHorizontal, Play, Volume2, VolumeX } from "lucide-react";
+import {
+  BookOpen,
+  Maximize2,
+  Minimize2,
+  MoreHorizontal,
+  Play,
+  Volume2,
+  VolumeX,
+} from "lucide-react";
 import { AFTER_ASK, GUIDE_COMMON, SITUATIONS, VIDEO_SRC, type Situation } from "./content";
 import { EmojiFace } from "./EmojiFace";
 import { PLAY } from "./playdata";
-import { freshPieces, isComplete, magnet, moveGroup, PIECES, TARGET, trySnap, type Piece, type PieceId } from "./puzzle";
+import {
+  freshPieces,
+  isComplete,
+  magnet,
+  moveGroup,
+  PIECES,
+  TARGET,
+  trySnap,
+  type Piece,
+  type PieceId,
+} from "./puzzle";
 import { sfx } from "./sfx";
+import { GuideDownloadModal } from "./GuideDownloadModal";
 
 type Screen = "home" | "video" | "situation" | "closing";
 type LogoMode = "mirarim" | "institutional" | "both" | "none";
@@ -133,7 +152,9 @@ function Scene({ src, alt, className = "" }: { src: string; alt: string; classNa
   const [err, setErr] = useState(false);
   if (err) {
     return (
-      <div className={`grid aspect-[3/2] place-items-center rounded-card bg-paper p-6 text-center text-indigo ${className}`}>
+      <div
+        className={`grid aspect-[3/2] place-items-center rounded-card bg-paper p-6 text-center text-indigo ${className}`}
+      >
         <p>No pudimos cargar esta imagen. Puedes volver al inicio e intentarlo nuevamente.</p>
       </div>
     );
@@ -270,57 +291,59 @@ function Puzzle({
       onPointerUp={finishDrag}
       onPointerCancel={finishDrag}
     >
-      {pieces.filter((piece) => piece && typeof piece.group === "number").map((piece) => (
-        <button
-          key={piece.id}
-          type="button"
-          aria-label={`Pieza ${PIECES.indexOf(piece.id) + 1} de 4`}
-          className="absolute h-full w-full border-0 bg-transparent p-0"
-          style={{
-            clipPath: CLIP[piece.id],
-            backgroundImage: `url(${image})`,
-            backgroundSize: "100% 100%",
-            backgroundRepeat: "no-repeat",
-            transform: `translate(${piece.x}%, ${piece.y}%) scale(${done ? 1 : 0.5})`,
-            transformOrigin: ORIGIN,
-            transition: dragging ? "none" : "transform 0.35s ease",
-            filter: "drop-shadow(0 8px 6px rgba(30,24,48,0.22))",
-            zIndex: drag.current?.group === piece.group ? 5 : 1,
-          }}
-          onPointerDown={(e) => {
-            if (done || finished.current) return;
-            e.currentTarget.setPointerCapture(e.pointerId);
-            const pt = pct(e.clientX, e.clientY);
-            drag.current = { group: piece.group, x: pt.x, y: pt.y };
-            setDragging(true);
-            sfx.pickup(effects);
-          }}
-          onKeyDown={(e) => {
-            const step = e.shiftKey ? 8 : 4;
-            if (e.key === "ArrowLeft") {
-              e.preventDefault();
-              nudge(piece.id, -step, 0);
-            }
-            if (e.key === "ArrowRight") {
-              e.preventDefault();
-              nudge(piece.id, step, 0);
-            }
-            if (e.key === "ArrowUp") {
-              e.preventDefault();
-              nudge(piece.id, 0, -step);
-            }
-            if (e.key === "ArrowDown") {
-              e.preventDefault();
-              nudge(piece.id, 0, step);
-            }
-            if (e.key === "Enter" || e.key === " ") {
-              e.preventDefault();
-              const t = TARGET[piece.id];
-              nudge(piece.id, (t.x - piece.x) * 0.65, (t.y - piece.y) * 0.65);
-            }
-          }}
-        />
-      ))}
+      {pieces
+        .filter((piece) => piece && typeof piece.group === "number")
+        .map((piece) => (
+          <button
+            key={piece.id}
+            type="button"
+            aria-label={`Pieza ${PIECES.indexOf(piece.id) + 1} de 4`}
+            className="absolute h-full w-full border-0 bg-transparent p-0"
+            style={{
+              clipPath: CLIP[piece.id],
+              backgroundImage: `url(${image})`,
+              backgroundSize: "100% 100%",
+              backgroundRepeat: "no-repeat",
+              transform: `translate(${piece.x}%, ${piece.y}%) scale(${done ? 1 : 0.5})`,
+              transformOrigin: ORIGIN,
+              transition: dragging ? "none" : "transform 0.35s ease",
+              filter: "drop-shadow(0 8px 6px rgba(30,24,48,0.22))",
+              zIndex: drag.current?.group === piece.group ? 5 : 1,
+            }}
+            onPointerDown={(e) => {
+              if (done || finished.current) return;
+              e.currentTarget.setPointerCapture(e.pointerId);
+              const pt = pct(e.clientX, e.clientY);
+              drag.current = { group: piece.group, x: pt.x, y: pt.y };
+              setDragging(true);
+              sfx.pickup(effects);
+            }}
+            onKeyDown={(e) => {
+              const step = e.shiftKey ? 8 : 4;
+              if (e.key === "ArrowLeft") {
+                e.preventDefault();
+                nudge(piece.id, -step, 0);
+              }
+              if (e.key === "ArrowRight") {
+                e.preventDefault();
+                nudge(piece.id, step, 0);
+              }
+              if (e.key === "ArrowUp") {
+                e.preventDefault();
+                nudge(piece.id, 0, -step);
+              }
+              if (e.key === "ArrowDown") {
+                e.preventDefault();
+                nudge(piece.id, 0, step);
+              }
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                const t = TARGET[piece.id];
+                nudge(piece.id, (t.x - piece.x) * 0.65, (t.y - piece.y) * 0.65);
+              }
+            }}
+          />
+        ))}
       <div ref={live} className="sr-only" aria-live="polite" />
       <p className="sr-only">Flechas para mover. Enter o espacio acerca la pieza.</p>
     </div>
@@ -342,6 +365,7 @@ export function Game() {
   const [menu, setMenu] = useState(false);
   const [prefs, setPrefs] = useState(false);
   const [how, setHow] = useState(false);
+  const [downloadGuide, setDownloadGuide] = useState(false);
   const [about, setAbout] = useState(false);
   const [config, setConfig] = useState(false);
   const [verdict, setVerdict] = useState<null | "ok" | "hint">(null);
@@ -361,11 +385,20 @@ export function Game() {
     const s = load();
     const shared = readShare(window.location.hash);
     if (shared) {
-      if (shared.m === "mirarim" || shared.m === "institutional" || shared.m === "both" || shared.m === "none") {
+      if (
+        shared.m === "mirarim" ||
+        shared.m === "institutional" ||
+        shared.m === "both" ||
+        shared.m === "none"
+      ) {
         s.logoMode = shared.m;
       }
       if (typeof shared.n === "string") s.instName = shared.n.slice(0, 80);
-      if (typeof shared.l === "string" && shared.l.startsWith("data:image") && shared.l.length < 320000) {
+      if (
+        typeof shared.l === "string" &&
+        shared.l.startsWith("data:image") &&
+        shared.l.length < 320000
+      ) {
         s.instLogo = shared.l;
       }
     }
@@ -484,10 +517,16 @@ export function Game() {
 
   return (
     <div className="flex min-h-dvh flex-col bg-cream text-ink">
-      <header className={`flex flex-wrap items-center gap-2 bg-indigo px-3 py-2 text-cream ${screen === "home" ? "hidden" : ""}`}>
+      <header
+        className={`flex flex-wrap items-center gap-2 bg-indigo px-3 py-2 text-cream ${screen === "home" ? "hidden" : ""}`}
+      >
         <div className="flex min-h-11 items-center gap-2">
           {showMirarim && (
-            <img src="/assets/brand/MIRARIM-horizontal-blanco.svg" alt="MIRARIM" className="h-8 w-auto" />
+            <img
+              src="/assets/brand/MIRARIM-horizontal-blanco.svg"
+              alt="MIRARIM"
+              className="h-8 w-auto"
+            />
           )}
           {showInst && settings.instLogo && (
             <img
@@ -539,7 +578,9 @@ export function Game() {
               else await document.documentElement.requestFullscreen();
               setFsMsg("");
             } catch {
-              setFsMsg("Tu navegador no permitió abrir la pantalla completa. Puedes volver a intentarlo.");
+              setFsMsg(
+                "Tu navegador no permitió abrir la pantalla completa. Puedes volver a intentarlo.",
+              );
             }
           }}
         >
@@ -568,7 +609,9 @@ export function Game() {
       </header>
 
       {storageNote && (
-        <p className="px-4 py-2 text-sm text-indigo">Tus preferencias no se conservarán al cerrar esta página.</p>
+        <p className="px-4 py-2 text-sm text-indigo">
+          Tus preferencias no se conservarán al cerrar esta página.
+        </p>
       )}
       {fsMsg && <p className="px-4 py-2 text-sm">{fsMsg}</p>}
 
@@ -591,7 +634,9 @@ export function Game() {
                       if (document.fullscreenElement) await document.exitFullscreen();
                       else await document.documentElement.requestFullscreen();
                     } catch {
-                      setFsMsg("Tu navegador no permitió abrir la pantalla completa. Puedes volver a intentarlo.");
+                      setFsMsg(
+                        "Tu navegador no permitió abrir la pantalla completa. Puedes volver a intentarlo.",
+                      );
                     }
                   }}
                 >
@@ -599,21 +644,25 @@ export function Game() {
                 </button>
               </div>
               <div className="flex flex-1 flex-col items-center justify-center gap-3 px-4 pb-10 text-center">
-              <div className="flex flex-col items-center gap-2">
-                {showMirarim && (
-                  <img src="/assets/brand/MIRARIM-horizontal-blanco.svg" alt="MIRARIM" className="h-8 w-auto" />
-                )}
-                {showInst && settings.instLogo && (
-                  <img
-                    src={settings.instLogo}
-                    alt={settings.instName || "Logo institucional"}
-                    className="h-16 max-w-xs object-contain"
-                  />
-                )}
-                {showInst && settings.instName && (
-                  <p className="text-lg font-extrabold">{settings.instName}</p>
-                )}
-              </div>
+                <div className="flex flex-col items-center gap-2">
+                  {showMirarim && (
+                    <img
+                      src="/assets/brand/MIRARIM-horizontal-blanco.svg"
+                      alt="MIRARIM"
+                      className="h-8 w-auto"
+                    />
+                  )}
+                  {showInst && settings.instLogo && (
+                    <img
+                      src={settings.instLogo}
+                      alt={settings.instName || "Logo institucional"}
+                      className="h-16 max-w-xs object-contain"
+                    />
+                  )}
+                  {showInst && settings.instName && (
+                    <p className="text-lg font-extrabold">{settings.instName}</p>
+                  )}
+                </div>
                 <h1 className="text-4xl font-extrabold sm:text-5xl">Grandes observadores</h1>
                 <p className="text-lg">Nos detenemos y miramos con atención.</p>
                 <p className="text-sm font-bold text-gold">10 situaciones · para mirar juntos</p>
@@ -630,31 +679,40 @@ export function Game() {
                   >
                     <Play size={18} aria-hidden /> Jugar
                   </button>
-                  <button type="button" className="min-h-12 rounded-full border border-white/50 bg-white/15 px-5 font-semibold" onClick={() => setPrefs(true)}>
+                  <button
+                    type="button"
+                    className="min-h-12 rounded-full border border-white/50 bg-white/15 px-5 font-semibold"
+                    onClick={() => setPrefs(true)}
+                  >
                     Personalizar
                   </button>
-                  <button type="button" className="min-h-12 rounded-full border border-white/50 bg-white/15 px-5 font-semibold" onClick={() => setHow(true)}>
+                  <button
+                    type="button"
+                    className="min-h-12 rounded-full border border-white/50 bg-white/15 px-5 font-semibold"
+                    onClick={() => setHow(true)}
+                  >
                     Cómo se juega
                   </button>
-                  <a
-                    href="/Grandes-observadores-4-5.pdf"
-                    download="Grandes-observadores-4-5.pdf"
+                  <button
+                    type="button"
                     className="inline-flex min-h-12 items-center rounded-full border border-white/50 bg-white/15 px-5 font-semibold"
+                    onClick={() => setDownloadGuide(true)}
                   >
-                    Recortar 4 a 5 años
-                  </a>
-                  <a
-                    href="/Grandes-observadores-6-8.pdf"
-                    download="Grandes-observadores-6-8.pdf"
-                    className="inline-flex min-h-12 items-center rounded-full border border-white/50 bg-white/15 px-5 font-semibold"
+                    Descargar guía
+                  </button>
+                  <button
+                    type="button"
+                    className="min-h-12 rounded-full border border-white/50 bg-white/15 px-5 font-semibold"
+                    onClick={() => setConfig(true)}
                   >
-                    Recortar 6 a 8 años
-                  </a>
-                  <button type="button" className="min-h-12 rounded-full border border-white/50 bg-white/15 px-5 font-semibold" onClick={() => setConfig(true)}>
                     Configuración
                   </button>
                 </div>
-                <button type="button" className="mt-2 text-sm underline-offset-2 hover:underline" onClick={() => setAbout(true)}>
+                <button
+                  type="button"
+                  className="mt-2 text-sm underline-offset-2 hover:underline"
+                  onClick={() => setAbout(true)}
+                >
                   Acerca de
                 </button>
               </div>
@@ -667,7 +725,8 @@ export function Game() {
             <h2 className="text-2xl font-extrabold text-indigo">Miremos juntos</h2>
             {videoMissing ? (
               <p className="rounded-card bg-paper p-4">
-                El video todavía no está cargado. Cuando lo subas, aparecerá aquí. Puedes seguir al juego.
+                El video todavía no está cargado. Cuando lo subas, aparecerá aquí. Puedes seguir al
+                juego.
               </p>
             ) : (
               <video
@@ -765,7 +824,9 @@ export function Game() {
                   }}
                 >
                   <EmojiFace mood={choice.mood} />
-                  <span className="text-center text-base font-extrabold text-indigo">{choice.label}</span>
+                  <span className="text-center text-base font-extrabold text-indigo">
+                    {choice.label}
+                  </span>
                 </button>
               ))}
             </div>
@@ -775,7 +836,9 @@ export function Game() {
 
         {screen === "situation" && phase === "after" && verdict !== null && (
           <section className="screen-in mx-auto flex w-full max-w-3xl flex-col items-center gap-4 text-center">
-            <h2 className={`title-pop text-4xl font-extrabold ${verdict === "ok" ? "text-coral" : "text-indigo"}`}>
+            <h2
+              className={`title-pop text-4xl font-extrabold ${verdict === "ok" ? "text-coral" : "text-indigo"}`}
+            >
               {verdict === "ok" ? "Muy bien" : "Pensemos bien"}
             </h2>
             <Scene src={sit.image} alt={sit.alt} className="max-h-[42vh]" />
@@ -806,17 +869,32 @@ export function Game() {
                 <circle cx="60" cy="84" r="42" fill="#e6b325" />
                 <circle cx="60" cy="84" r="33" fill="#f7f1e4" />
                 <circle cx="60" cy="82" r="10" fill="#2b2155" />
-                <path d="M38 82 Q60 70 82 82 Q60 94 38 82 Z" fill="none" stroke="#2b2155" strokeWidth="3" />
+                <path
+                  d="M38 82 Q60 70 82 82 Q60 94 38 82 Z"
+                  fill="none"
+                  stroke="#2b2155"
+                  strokeWidth="3"
+                />
               </svg>
             </div>
             <p className="text-sm font-bold uppercase tracking-wide text-coral">Felicitaciones</p>
             <h1 className="text-3xl font-extrabold text-indigo">Ahora son Grandes observadores</h1>
-            <p>Se detuvieron, miraron con atención y reconocieron las señales de las otras personas.</p>
+            <p>
+              Se detuvieron, miraron con atención y reconocieron las señales de las otras personas.
+            </p>
             <div className="flex flex-wrap justify-center gap-2">
-              <button type="button" className="min-h-12 rounded-full border-2 border-indigo px-4" onClick={() => setMenu(true)}>
+              <button
+                type="button"
+                className="min-h-12 rounded-full border-2 border-indigo px-4"
+                onClick={() => setMenu(true)}
+              >
                 Volver a una situación
               </button>
-              <button type="button" className="min-h-12 rounded-full border-2 border-indigo px-4" onClick={() => openSit(0, true)}>
+              <button
+                type="button"
+                className="min-h-12 rounded-full border-2 border-indigo px-4"
+                onClick={() => openSit(0, true)}
+              >
                 Repetir la actividad
               </button>
               <button
@@ -858,7 +936,11 @@ export function Game() {
           <h2 id="guia-titulo" className="text-xl font-extrabold text-indigo">
             Guía{screen === "situation" ? ` · ${sit.title}` : ""}
           </h2>
-          <button type="button" className="mt-2 min-h-11 rounded-full border-2 border-indigo px-4" onClick={() => setGuide(false)}>
+          <button
+            type="button"
+            className="mt-2 min-h-11 rounded-full border-2 border-indigo px-4"
+            onClick={() => setGuide(false)}
+          >
             Cerrar guía
           </button>
           {screen === "situation" ? (
@@ -866,15 +948,25 @@ export function Game() {
               <h3 className="font-extrabold">Pregunta antes de armar</h3>
               <p>{sit.main}</p>
               <h3 className="font-extrabold">Qué observar en esta situación</h3>
-              <ul className="list-disc pl-5">{sit.observe.map((x) => <li key={x}>{x}</li>)}</ul>
+              <ul className="list-disc pl-5">
+                {sit.observe.map((x) => (
+                  <li key={x}>{x}</li>
+                ))}
+              </ul>
               <h3 className="font-extrabold">También puedes preguntar</h3>
-              <ul className="list-disc pl-5">{sit.extra.map((x) => <li key={x}>{x}</li>)}</ul>
+              <ul className="list-disc pl-5">
+                {sit.extra.map((x) => (
+                  <li key={x}>{x}</li>
+                ))}
+              </ul>
               <h3 className="font-extrabold">Pregunta después de armar</h3>
               <p>{afterAsk}</p>
               <h3 className="font-extrabold">Antes de armar</h3>
               <p>{GUIDE_COMMON.before}</p>
               <h3 className="font-extrabold">Durante el armado</h3>
-              <p>{GUIDE_COMMON.during} {sit.voiceText}</p>
+              <p>
+                {GUIDE_COMMON.during} {sit.voiceText}
+              </p>
               <h3 className="font-extrabold">Después de armar</h3>
               <p>{GUIDE_COMMON.after}</p>
               <h3 className="font-extrabold">Cierre sugerido</h3>
@@ -887,7 +979,10 @@ export function Game() {
       )}
 
       {menu && (
-        <div className="fixed inset-0 z-40 grid place-items-start justify-end bg-ink/30 p-4" onClick={() => setMenu(false)}>
+        <div
+          className="fixed inset-0 z-40 grid place-items-start justify-end bg-ink/30 p-4"
+          onClick={() => setMenu(false)}
+        >
           <div
             role="dialog"
             aria-label="Elegir situación"
@@ -897,10 +992,19 @@ export function Game() {
             <h2 className="font-extrabold text-indigo">Elegir situación</h2>
             <ul className="mt-3 grid gap-2">
               {SITUATIONS.map((s, i) => {
-                const status = screen === "situation" && i === index ? "Actual" : visited.includes(i) ? "Visitada" : "No visitada";
+                const status =
+                  screen === "situation" && i === index
+                    ? "Actual"
+                    : visited.includes(i)
+                      ? "Visitada"
+                      : "No visitada";
                 return (
                   <li key={s.id}>
-                    <button type="button" className="min-h-11 w-full rounded-xl bg-cream px-3 text-left" onClick={() => openSit(i)}>
+                    <button
+                      type="button"
+                      className="min-h-11 w-full rounded-xl bg-cream px-3 text-left"
+                      onClick={() => openSit(i)}
+                    >
                       {s.id}. {s.title} — {status}
                     </button>
                   </li>
@@ -908,16 +1012,26 @@ export function Game() {
               })}
             </ul>
             <div className="mt-3 flex flex-wrap gap-2">
-              <button type="button" className="min-h-11 rounded-full border-2 border-indigo px-3" onClick={() => setPrefs(true)}>
+              <button
+                type="button"
+                className="min-h-11 rounded-full border-2 border-indigo px-3"
+                onClick={() => setPrefs(true)}
+              >
                 Personalización
               </button>
-              <button type="button" className="min-h-11 rounded-full border-2 border-indigo px-3" onClick={() => setResetAsk(true)}>
+              <button
+                type="button"
+                className="min-h-11 rounded-full border-2 border-indigo px-3"
+                onClick={() => setResetAsk(true)}
+              >
                 Reiniciar actividad
               </button>
             </div>
           </div>
         </div>
       )}
+
+      {downloadGuide && <GuideDownloadModal onClose={() => setDownloadGuide(false)} />}
 
       {how && (
         <Modal onClose={() => setHow(false)} title="Cómo se juega">
@@ -927,30 +1041,15 @@ export function Game() {
             <li>Cuando la escena está completa, lean qué pasó.</li>
             <li>Elijan el rostro que mejor acompaña la situación.</li>
           </ul>
-          <div className="mt-4 flex flex-wrap gap-2">
-            <a
-              href="/Grandes-observadores-4-5.pdf"
-              download="Grandes-observadores-4-5.pdf"
-              className="inline-flex min-h-11 items-center rounded-full bg-coral px-4 font-extrabold text-paper"
-            >
-              Recortar 4 a 5 años
-            </a>
-            <a
-              href="/Grandes-observadores-6-8.pdf"
-              download="Grandes-observadores-6-8.pdf"
-              className="inline-flex min-h-11 items-center rounded-full border-2 border-indigo px-4 font-extrabold"
-            >
-              Recortar 6 a 8 años
-            </a>
-          </div>
         </Modal>
       )}
 
       {about && (
         <Modal onClose={() => setAbout(false)} title="Acerca de">
           <p>
-            Grandes observadores es un juego de MIRARIM para detenerse, armar una escena cotidiana y conversar sobre lo que
-            podría estar sintiendo alguien. No diagnostica ni reemplaza el criterio de quien facilita.
+            Grandes observadores es un juego de MIRARIM para detenerse, armar una escena cotidiana y
+            conversar sobre lo que podría estar sintiendo alguien. No diagnostica ni reemplaza el
+            criterio de quien facilita.
           </p>
         </Modal>
       )}
@@ -958,10 +1057,18 @@ export function Game() {
       {config && (
         <Modal onClose={() => setConfig(false)} title="Configuración">
           <div className="mt-3 flex flex-col gap-2">
-            <button type="button" className="min-h-11 rounded-full border-2 border-indigo px-4 text-left" onClick={() => setSettings((s) => ({ ...s, voice: !s.voice }))}>
+            <button
+              type="button"
+              className="min-h-11 rounded-full border-2 border-indigo px-4 text-left"
+              onClick={() => setSettings((s) => ({ ...s, voice: !s.voice }))}
+            >
               {settings.voice ? "Voz activada" : "Voz silenciada"}
             </button>
-            <button type="button" className="min-h-11 rounded-full border-2 border-indigo px-4 text-left" onClick={() => setSettings((s) => ({ ...s, effects: !s.effects }))}>
+            <button
+              type="button"
+              className="min-h-11 rounded-full border-2 border-indigo px-4 text-left"
+              onClick={() => setSettings((s) => ({ ...s, effects: !s.effects }))}
+            >
               {settings.effects ? "Efectos activados" : "Efectos silenciados"}
             </button>
           </div>
@@ -972,7 +1079,11 @@ export function Game() {
         <Modal title="Continuar">
           <p>¿Quieres continuar desde la última situación o comenzar nuevamente?</p>
           <div className="mt-3 flex gap-2">
-            <button type="button" className="min-h-11 rounded-full bg-coral px-4 font-extrabold text-paper" onClick={() => openSit(settings.last ?? 0, true)}>
+            <button
+              type="button"
+              className="min-h-11 rounded-full bg-coral px-4 font-extrabold text-paper"
+              onClick={() => openSit(settings.last ?? 0, true)}
+            >
               Continuar
             </button>
             <button
@@ -991,9 +1102,16 @@ export function Game() {
 
       {leave !== null && (
         <Modal title="Cambiar">
-          <p>¿Quieres cambiar de situación? Las piezas de esta situación volverán a su posición inicial.</p>
+          <p>
+            ¿Quieres cambiar de situación? Las piezas de esta situación volverán a su posición
+            inicial.
+          </p>
           <div className="mt-3 flex gap-2">
-            <button type="button" className="min-h-11 rounded-full border-2 border-indigo px-4" onClick={() => setLeave(null)}>
+            <button
+              type="button"
+              className="min-h-11 rounded-full border-2 border-indigo px-4"
+              onClick={() => setLeave(null)}
+            >
               Seguir aquí
             </button>
             <button
@@ -1013,9 +1131,16 @@ export function Game() {
 
       {resetAsk && (
         <Modal title="Reiniciar">
-          <p>¿Quieres reiniciar la actividad? Se perderá el avance actual, pero se conservarán tus preferencias.</p>
+          <p>
+            ¿Quieres reiniciar la actividad? Se perderá el avance actual, pero se conservarán tus
+            preferencias.
+          </p>
           <div className="mt-3 flex gap-2">
-            <button type="button" className="min-h-11 rounded-full border-2 border-indigo px-4" onClick={() => setResetAsk(false)}>
+            <button
+              type="button"
+              className="min-h-11 rounded-full border-2 border-indigo px-4"
+              onClick={() => setResetAsk(false)}
+            >
               Cancelar
             </button>
             <button
@@ -1039,14 +1164,17 @@ export function Game() {
       {prefs && (
         <Modal title="Personalización institucional" onClose={() => setPrefs(false)}>
           <p className="text-sm font-bold text-indigo">
-            No ingreses nombres ni información personal o sensible de estudiantes, pacientes o participantes.
+            No ingreses nombres ni información personal o sensible de estudiantes, pacientes o
+            participantes.
           </p>
           <label className="mt-3 block text-sm">
             Nombre institucional
             <input
               className="mt-1 w-full min-h-11 rounded-xl border border-indigo/20 bg-cream px-3"
               value={settings.instName}
-              onChange={(e) => setSettings((s) => ({ ...s, instName: e.target.value.slice(0, 80) }))}
+              onChange={(e) =>
+                setSettings((s) => ({ ...s, instName: e.target.value.slice(0, 80) }))
+              }
             />
           </label>
           <label className="mt-3 block text-sm">
@@ -1059,17 +1187,25 @@ export function Game() {
                 const file = e.target.files?.[0];
                 e.target.value = "";
                 const name = file?.name.toLowerCase() ?? "";
-                const typeOk = !!file && (file.type.startsWith("image/") || /\.(png|jpe?g|webp)$/.test(name));
+                const typeOk =
+                  !!file && (file.type.startsWith("image/") || /\.(png|jpe?g|webp)$/.test(name));
                 if (!file || !typeOk || file.size > 8_000_000) {
-                  window.alert("No pudimos usar este archivo. Prueba con un PNG, JPG o WebP de menos de 8 MB.");
+                  window.alert(
+                    "No pudimos usar este archivo. Prueba con un PNG, JPG o WebP de menos de 8 MB.",
+                  );
                   return;
                 }
                 const reader = new FileReader();
-                reader.onerror = () => window.alert("No pudimos leer este archivo. Prueba con otro PNG o JPG.");
+                reader.onerror = () =>
+                  window.alert("No pudimos leer este archivo. Prueba con otro PNG o JPG.");
                 reader.onload = () => {
                   void shrinkLogo(String(reader.result || ""))
-                    .then((logo) => setSettings((s) => ({ ...s, instLogo: logo, logoMode: "institutional" })))
-                    .catch(() => window.alert("No pudimos leer este archivo. Prueba con otro PNG o JPG."));
+                    .then((logo) =>
+                      setSettings((s) => ({ ...s, instLogo: logo, logoMode: "institutional" })),
+                    )
+                    .catch(() =>
+                      window.alert("No pudimos leer este archivo. Prueba con otro PNG o JPG."),
+                    );
                 };
                 reader.readAsDataURL(file);
               }}
@@ -1119,7 +1255,8 @@ export function Game() {
           </button>
           {shareUrl && (
             <p className="mt-3 break-all text-sm">
-              Enlace copiado. Ábrelo completo en el otro computador: incluye el nombre y el logo. {shareUrl}
+              Enlace copiado. Ábrelo completo en el otro computador: incluye el nombre y el logo.{" "}
+              {shareUrl}
             </p>
           )}
           <button
@@ -1187,7 +1324,11 @@ function Modal({
         <h2 className="text-lg font-extrabold text-indigo">{title}</h2>
         <div className="mt-2">{children}</div>
         {onClose && (
-          <button type="button" className="mt-4 min-h-11 rounded-full bg-coral px-4 font-extrabold text-paper" onClick={onClose}>
+          <button
+            type="button"
+            className="mt-4 min-h-11 rounded-full bg-coral px-4 font-extrabold text-paper"
+            onClick={onClose}
+          >
             Cerrar
           </button>
         )}
